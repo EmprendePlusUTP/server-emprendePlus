@@ -4,6 +4,7 @@ from db.utils import create_tables
 from contextlib import asynccontextmanager
 from db import models  # Asegúrate de que este módulo exista y contenga los modelos
 from routers import users, products, sales
+from routers.bussines import router as business_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,6 +25,7 @@ app.add_middleware(
 app.include_router(users.router, prefix="/users", tags=["Usuarios"])
 app.include_router(products.router, prefix="/products", tags=["Productos"])
 app.include_router(sales.router, prefix="/sales", tags=["Ventas"])
+app.include_router(business_router, prefix="/business", tags=["Negocios"])
 
 # Ruta base
 @app.get("/")

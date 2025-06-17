@@ -17,6 +17,7 @@ class BusinessProductLink(SQLModel, table=True):
 class User(SQLModel, table=True):
     id: str = Field(primary_key=True)  # ID proveniente de Auth0
     name: str
+    business_name: str    # Nombre del negocio, opcional
 
     # Un usuario puede tener varios negocios
     businesses: List["Business"] = Relationship(back_populates="owner")

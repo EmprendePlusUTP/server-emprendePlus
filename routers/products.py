@@ -39,7 +39,7 @@ def create_product(product: Product):
 from fastapi import APIRouter, Query, HTTPException
 from sqlmodel import Session, select
 from db.connection import engine
-from db.models import Product, Business
+from db.models import Product, Business, User
 
 router = APIRouter()
 
@@ -63,3 +63,4 @@ def create_product(product: Product):
         session.commit()
         session.refresh(product)
         return product
+    
