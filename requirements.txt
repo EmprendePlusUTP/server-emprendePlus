@@ -4,3 +4,4 @@ sqlmodel
 openai
 python-dotenv
 pydantic
+jose
