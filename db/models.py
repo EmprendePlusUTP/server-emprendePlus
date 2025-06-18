@@ -46,7 +46,7 @@ class Business(SQLModel, table=True):
 # Nota: Se ha quitado el campo business_id
 # ---------------------------
 class Product(SQLModel, table=True):
-    id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     Tipo: str
     Costo: float
     name: str
