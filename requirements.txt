@@ -5,3 +5,5 @@ openai
 python-dotenv
 pydantic
 jose
+requests
+python-jose[cryptography]

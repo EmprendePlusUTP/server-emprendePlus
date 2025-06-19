@@ -1,10 +1,11 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from db.utils import create_tables
 from contextlib import asynccontextmanager
 from db import models  # Asegúrate de que este módulo exista y contenga los modelos
 from routers import users, products, sales
 from routers.bussines import router as business_router
+from services.register_session import handle_register_session
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -31,3 +32,7 @@ app.include_router(business_router, prefix="/business", tags=["Negocios"])
 @app.get("/")
 def read_root():
     return {"Base de datos creada"}
+
+@app.post("/api/register-session")
+def register_session(response=Depends(handle_register_session)):
+    return response

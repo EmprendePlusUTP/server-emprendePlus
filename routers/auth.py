@@ -6,8 +6,13 @@ import requests
 from jose import jwt
 
 # Configuración de Auth0 (pon esto en variables de entorno en un proyecto real)
-AUTH0_DOMAIN = "TU_DOMINIO_AUTH0"
-API_AUDIENCE = "EL_IDENTIFICADOR_DE_TU_API"
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
+API_AUDIENCE = os.getenv("API_AUDIENCE")
 ALGORITHMS = ["RS256"]
 
 # Esquema de seguridad

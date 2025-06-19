@@ -25,25 +25,6 @@ class UserOut(BaseModel):
     class Config:
         orm_mode = True
 
-# @router.post("/")
-# def create_user(
-#     user_data: dict,  # Espera solo {"name": ...}
-#     token_payload: dict = Depends(get_token_auth_header)
-# ):
-#     user_id = token_payload["sub"]
-#     name = user_data.get("name")
-#     if not name:
-#         return {"error": "El nombre es obligatorio"}
-#     with Session(engine) as session:
-#         # Verifica si el usuario ya existe
-#         existing = session.exec(select(User).where(User.id == user_id)).first()
-#         if existing:
-#             return existing
-#         user = User(id=user_id, name=name)
-#         session.add(user)
-#         session.commit()
-#         session.refresh(user)
-#         return user
 
 @router.post("/")
 def create_user_query(
