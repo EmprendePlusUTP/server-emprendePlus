@@ -20,8 +20,12 @@ class BusinessOut(BaseModel):
 class UserOut(BaseModel):
     id: str
     name: str
-    business_name: Optional[str]
     businesses: List[BusinessOut] = []
+
+    @property
+    def business_name(self) -> Optional[str]:
+        return self.businesses[0].name if self.businesses else None
+
     class Config:
         orm_mode = True
 
@@ -57,14 +61,20 @@ def create_user_query(
             session.refresh(business)
         return user
 
-@router.get("/{user_id}", response_model=UserOut)
+@router.get("/{user_id}")
 def read_user(user_id: str):
     with Session(engine) as session:
         statement = select(User).where(User.id == user_id).options(selectinload(User.businesses))
         user = session.exec(statement).first()
         if not user:
             return {"error": "Usuario no encontrado"}
-        return user
+
+        return {
+            "id": user.id,
+            "name": user.name,
+            "businesses": user.businesses,
+            "business_name": user.businesses[0].name if user.businesses else None,
+        }
 
 @router.put("/{user_id}")
 def update_user(user_id: str, user_name: str = Query(None), business_name: str = Query(None)):
