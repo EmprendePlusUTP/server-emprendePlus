@@ -76,3 +76,12 @@ def get_token_auth_header(auth: HTTPAuthorizationCredentials = Depends(token_aut
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid claims, please check audience and issuer")
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unable to parse authentication token.")
+    
+def get_current_user_id(payload: dict = Depends(get_token_auth_header)) -> str:
+    """
+    Extrae el user_id (sub) del payload ya decodificado.
+    """
+    user_id = payload.get("sub")  # o payload["https://emprendeplus.com/user_id"] si usas custom claim
+    if not user_id:
+        raise HTTPException(status_code=401, detail="user_id no encontrado en el token")
+    return user_id

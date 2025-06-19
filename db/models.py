@@ -17,20 +17,49 @@ class BusinessProductLink(SQLModel, table=True):
 class User(SQLModel, table=True):
     id: str = Field(primary_key=True)  # ID proveniente de Auth0
     name: str
-    business_name: Optional[str] = None    # Nombre del negocio, opcional
-
-    # Un usuario puede tener varios negocios
     businesses: List["Business"] = Relationship(back_populates="owner")
+    
 
 
 # ---------------------------
 # Negocio (Business)
 # ---------------------------
+from sqlmodel import SQLModel, Field, Relationship
+from typing import Optional
+from uuid import UUID, uuid4
+
 class Business(SQLModel, table=True):
-    id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
     name: str
-    description: str
+    description: Optional[str] = ""
     owner_id: str = Field(foreign_key="user.id")
+
+    # Identidad
+    tagline: Optional[str] = ""
+    logo_url: Optional[str] = None  # (recomendado subir a S3 o similar)
+
+    # Datos fiscales
+    legal_name: Optional[str] = None
+    tax_id: Optional[str] = None
+    fiscal_address: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+
+    # Configuración de facturación
+    currency: str = "USD"
+    invoice_prefix: Optional[str] = ""
+    invoice_counter: int = 1
+    payment_terms_amount: int = 30
+    payment_terms_unit: str = "días"
+    bank_details: Optional[str] = None
+    tax_rates: Optional[str] = None  # ejemplo: "IVA:21%, IGV:18%"
+
+    # Ajustes avanzados
+    timezone: str = "America/Panama"
+    language: str = "es"
+    date_format: str = "dd/mm/yyyy"
+    number_format: str = "1.234,56"
+
     
     # Relación muchos a muchos con Product a través del link table
     products: List["Product"] = Relationship(
