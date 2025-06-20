@@ -114,8 +114,14 @@ class Sale(SQLModel, table=True):
 class SaleProduct(SQLModel, table=True):
     id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
     sale_id: UUID = Field(foreign_key="sale.id")
-    product_id: UUID = Field(foreign_key="product.sku")
+    product_id: str = Field(foreign_key="product.sku")
+    quantity: int
     subtotal: float
+    discount: Optional[float] = 0.0
 
     sale: Optional["Sale"] = Relationship(back_populates="sale_products")
     product: Optional["Product"] = Relationship(back_populates="sale_products")
+
+    # Campos virtuales solo para serialización
+    product_name: Optional[str] = None
+    sale_price: Optional[float] = None

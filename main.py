@@ -24,7 +24,7 @@ app.add_middleware(
 # Incluimos los routers
 app.include_router(users.router, prefix="/api/users", tags=["Usuarios"])
 app.include_router(products.router, prefix="/api/products", tags=["Productos"])
-app.include_router(sales.router, prefix="/sales", tags=["Ventas"])
+app.include_router(sales.router, prefix="/api/sales", tags=["Ventas"])
 app.include_router(business.router, prefix="/api/business", tags=["Negocios"])
 
 # Ruta base

@@ -1,9 +1,9 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Body, Depends, Query, HTTPException
 from sqlmodel import Session, select
 from db.connection import engine
 from db.models import  Product, Business, User
-from models import ProductCreate, ProductCreateFromUser, ProductRead
+from models import ProductCreate, ProductCreateFromUser, ProductRead, ProductUpdateInput
 from routers.auth import get_current_user_id
 
 
@@ -69,27 +69,15 @@ def get_product_by_sku(sku: str, user_id: str = Depends(get_current_user_id)):
 @router.patch("/{sku}")
 def update_product(
     sku: str,
-    name: Optional[str] = Query(None),
-    type: Optional[str] = Query(None),
-    cost: Optional[float] = Query(None),
-    sale_price: Optional[float] = Query(None),
-    stock: Optional[int] = Query(None),
+    data: ProductUpdateInput = Body(...),
 ):
     with Session(engine) as session:
         product = session.exec(select(Product).where(Product.sku == sku)).first()
         if not product:
             return {"error": f"Producto con SKU {sku} no encontrado"}
 
-        if name is not None:
-            product.name = name
-        if type is not None:
-            product.type = type
-        if cost is not None:
-            product.cost = cost
-        if sale_price is not None:
-            product.sale_price = sale_price
-        if stock is not None:
-            product.stock = stock
+        for field, value in data.dict(exclude_unset=True).items():
+            setattr(product, field, value)
 
         session.add(product)
         session.commit()
