@@ -1,4 +1,5 @@
-from typing import Optional
+from datetime import date
+from typing import List, Optional
 from uuid import UUID
 from pydantic import BaseModel
 
@@ -51,3 +52,46 @@ class ProductCreateFromUser(BaseModel):
     name: str
     sale_price: float
     stock: int
+    
+    
+class SaleProductRead(BaseModel):
+    product_id: str
+    quantity: int
+    subtotal: float
+    discount: Optional[float] = 0.0 
+    product_name: Optional[str]
+    sale_price: Optional[float]
+
+    class Config:
+        orm_mode = True
+
+class SaleRead(BaseModel):
+    id: UUID
+    sale_date: date
+    total: float
+    sale_products: List[SaleProductRead]
+
+    class Config:
+        orm_mode = True
+        
+class SaleProductInput(BaseModel):
+    product_id: str
+    quantity: int
+    subtotal: float
+    discount: Optional[float] = 0.0
+    
+
+class SaleCreateInput(BaseModel):
+    sale_date: date
+    products: List[SaleProductInput]
+    
+class SaleUpdateInput(BaseModel):
+    sale_date: Optional[date]
+    products: Optional[List[SaleProductInput]]
+    
+class ProductUpdateInput(BaseModel):
+    name: Optional[str]
+    type: Optional[str]
+    cost: Optional[float]
+    sale_price: Optional[float]
+    stock: Optional[int]
