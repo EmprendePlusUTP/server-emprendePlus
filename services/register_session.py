@@ -21,7 +21,7 @@ def handle_register_session(payload: dict = Depends(get_token_auth_header)):
 
         if existing_user:
             # ✅ Verificar si ya tiene al menos un negocio, y si no, crear uno por defecto
-            if not existing_user.businesses:
+            if not existing_user.business:
                 business = Business(
                     id=uuid.uuid4(),
                     name="Mi negocio",

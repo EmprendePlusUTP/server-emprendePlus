@@ -1,76 +1,109 @@
-from fastapi import APIRouter, Query, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlmodel import Session, select
 from db.connection import engine
-from db.models import Product, Business, User
+from db.models import  Product, Business, User
+from models import ProductCreate, ProductCreateFromUser, ProductRead
+from routers.auth import get_current_user_id
+
 
 router = APIRouter()
 
 @router.get("/")
-def get_products(user_id: str = Query(None), business_id: str = Query(None)):
+def get_products(user_id: str = Depends(get_current_user_id)):
     with Session(engine) as session:
-        query = select(Product)
-        if user_id:
-            # Filtra productos cuyos negocios asociados tengan owner_id igual a user_id.
-            query = query.join(Product.business).where(Business.owner_id == user_id)
-        elif business_id:
-            # Filtra productos asociados al negocio cuyo id coincida.
-            query = query.join(Product.business).where(Business.id == business_id)
+        # Filtra productos del negocio cuyo owner_id es el usuario actual
+        query = (
+            select(Product)
+            .join(Product.business)
+            .where(Business.owner_id == user_id)
+        )
         products = session.exec(query).all()
         return products
 
 @router.post("/")
-def create_product(product: Product):
+def create_product_for_user(
+    product_data: ProductCreate,
+    user_id: str = Depends(get_current_user_id)
+):
     with Session(engine) as session:
+        # Obtener el negocio del usuario autenticado
+        business = session.exec(
+            select(Business).where(Business.owner_id == user_id)
+        ).first()
+
+        if not business:
+            raise HTTPException(status_code=404, detail="Business not found for user")
+
+        product = Product(
+            sku=product_data.sku,
+            type=product_data.type,
+            cost=product_data.cost,
+            name=product_data.name,
+            sale_price=product_data.sale_price,
+            stock=product_data.stock,
+            business_id=business.id 
+        )
+
         session.add(product)
         session.commit()
         session.refresh(product)
+
         return product
 
-@router.put("/{product_id}")
-def update_product(product_id: str, 
-                  name: str = Query(None),
-                  Tipo: str = Query(None),
-                  Costo: float = Query(None),
-                  precioVenta: float = Query(None),
-                  stock: int = Query(None)):
-    from db.models import Product
+@router.get("/{sku}", response_model=ProductRead)
+def get_product_by_sku(sku: str, user_id: str = Depends(get_current_user_id)):
     with Session(engine) as session:
-        product = session.exec(select(Product).where(Product.id == product_id)).first()
+        product = session.exec(
+            select(Product)
+            .join(Product.business)
+            .where(Product.sku == sku)
+            .where(Business.owner_id == user_id)
+        ).first()
+
         if not product:
-            all_products = session.exec(select(Product)).all()
-            ids = [str(p.id) for p in all_products]
-            return {"error": f"Producto no encontrado. IDs existentes: {ids}"}
-        # Actualización de campos
+            raise HTTPException(status_code=404, detail="Product not found")
+
+        return product
+
+@router.patch("/{sku}")
+def update_product(
+    sku: str,
+    name: Optional[str] = Query(None),
+    type: Optional[str] = Query(None),
+    cost: Optional[float] = Query(None),
+    sale_price: Optional[float] = Query(None),
+    stock: Optional[int] = Query(None),
+):
+    with Session(engine) as session:
+        product = session.exec(select(Product).where(Product.sku == sku)).first()
+        if not product:
+            return {"error": f"Producto con SKU {sku} no encontrado"}
+
         if name is not None:
             product.name = name
-        if Tipo is not None:
-            product.Tipo = Tipo
-        if Costo is not None:
-            product.Costo = float(Costo)
-        if precioVenta is not None:
-            product.precioVenta = float(precioVenta)
+        if type is not None:
+            product.type = type
+        if cost is not None:
+            product.cost = cost
+        if sale_price is not None:
+            product.sale_price = sale_price
         if stock is not None:
-            product.stock = int(stock)
+            product.stock = stock
+
         session.add(product)
         session.commit()
         session.refresh(product)
-        return {
-            "id": product.id,
-            "name": product.name,
-            "Tipo": product.Tipo,
-            "Costo": product.Costo,
-            "precioVenta": product.precioVenta,
-            "stock": product.stock
-        }
 
-@router.delete("/{product_id}")
-def delete_product(product_id: str):
-    from db.models import Product
+        return product
+
+@router.delete("/{sku}")
+def delete_product(sku: str):
     with Session(engine) as session:
-        product = session.exec(select(Product).where(Product.id == product_id)).first()
+        product = session.exec(select(Product).where(Product.sku == sku)).first()
         if not product:
-            return {"error": "Producto no encontrado"}
+            return {"error": f"Producto con SKU {sku} no encontrado"}
         session.delete(product)
         session.commit()
-        return {"message": f"Producto {product_id} eliminado correctamente"}
+        return {"message": f"Producto {sku} eliminado correctamente"}
 

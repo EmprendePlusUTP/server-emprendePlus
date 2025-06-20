@@ -20,11 +20,11 @@ class BusinessOut(BaseModel):
 class UserOut(BaseModel):
     id: str
     name: str
-    businesses: List[BusinessOut] = []
+    business: Optional[BusinessOut] 
 
     @property
     def business_name(self) -> Optional[str]:
-        return self.businesses[0].name if self.businesses else None
+        return self.business.name if self.business else None
 
     class Config:
         orm_mode = True
@@ -64,7 +64,7 @@ def create_user_query(
 @router.get("/{user_id}")
 def read_user(user_id: str):
     with Session(engine) as session:
-        statement = select(User).where(User.id == user_id).options(selectinload(User.businesses))
+        statement = select(User).where(User.id == user_id).options(selectinload(User.business))
         user = session.exec(statement).first()
         if not user:
             return {"error": "Usuario no encontrado"}
@@ -72,8 +72,8 @@ def read_user(user_id: str):
         return {
             "id": user.id,
             "name": user.name,
-            "businesses": user.businesses,
-            "business_name": user.businesses[0].name if user.businesses else None,
+            "business": user.business,
+            "business_name": user.business.name if user.business else None,
         }
 
 @router.put("/{user_id}")

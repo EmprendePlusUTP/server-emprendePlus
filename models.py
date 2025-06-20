@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import UUID
 from pydantic import BaseModel
 
 
@@ -23,3 +24,30 @@ class BusinessUpdate(BaseModel):
     language: Optional[str] = None
     date_format: Optional[str] = None
     number_format: Optional[str] = None
+    
+class ProductCreate(BaseModel):
+    name: str
+    sku: str
+    sale_price: float
+    type: Optional[str] = None
+    cost: Optional[float] = None
+    stock: Optional[int] = None
+
+class ProductRead(BaseModel):
+    sku: str
+    type: str
+    cost: float
+    name: str
+    sale_price: float
+    stock: int
+
+    class Config:
+        orm_mode = True
+        
+class ProductCreateFromUser(BaseModel):
+    user_id: str
+    type: str
+    cost: float
+    name: str
+    sale_price: float
+    stock: int
