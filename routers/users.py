@@ -15,7 +15,7 @@ class BusinessOut(BaseModel):
     name: str
     description: str
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class UserOut(BaseModel):
     id: str
@@ -27,7 +27,7 @@ class UserOut(BaseModel):
         return self.business.name if self.business else None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 @router.post("/")
