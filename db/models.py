@@ -14,7 +14,32 @@ class User(SQLModel, table=True):
 
     # One user → one business
     business: Optional["Business"] = Relationship(back_populates="owner")
+    
+# ---------------------------
+# Finance
+# ---------------------------
+class Finance(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    business_id: UUID = Field(foreign_key="business.id", index=True)
+    date: date
+    type: str  # "income" o "expense"
+    category: str
+    subcategory: str
+    amount: float
+    description: Optional[str] = None
 
+    # Relación opcional de vuelta a Business
+    business: Optional["Business"] = Relationship(back_populates="finances")
+
+
+class Budget(SQLModel, table=True):
+    id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
+    business_id: UUID = Field(foreign_key="business.id", index=True)
+    category: str
+    subcategory: Optional[str] = None
+    amount: float
+
+    business: Optional["Business"] = Relationship(back_populates="budgets")
 
 # ---------------------------
 # Business
@@ -24,6 +49,9 @@ class Business(SQLModel, table=True):
     name: str
     description: Optional[str] = ""
     owner_id: str = Field(foreign_key="user.id")
+    
+    finances: list[Finance] = Relationship(back_populates="business")
+    budgets: List["Budget"] = Relationship(back_populates="business")
 
     # Identity
     tagline: Optional[str] = ""
@@ -125,3 +153,5 @@ class SaleProduct(SQLModel, table=True):
     # Campos virtuales solo para serialización
     product_name: Optional[str] = None
     sale_price: Optional[float] = None
+
+

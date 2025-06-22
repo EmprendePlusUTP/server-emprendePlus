@@ -43,7 +43,7 @@ class ProductRead(BaseModel):
     stock: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
         
 class ProductCreateFromUser(BaseModel):
     user_id: str
@@ -63,7 +63,7 @@ class SaleProductRead(BaseModel):
     sale_price: Optional[float]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class SaleRead(BaseModel):
     id: UUID
@@ -72,7 +72,7 @@ class SaleRead(BaseModel):
     sale_products: List[SaleProductRead]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
         
 class SaleProductInput(BaseModel):
     product_id: str
@@ -95,3 +95,29 @@ class ProductUpdateInput(BaseModel):
     cost: Optional[float]
     sale_price: Optional[float]
     stock: Optional[int]
+    
+class FinanceCreate(BaseModel):
+    date: date
+    type: str
+    category: str
+    subcategory: str
+    amount: float
+    description: Optional[str] = None
+
+class FinanceRead(FinanceCreate):
+    id: int
+
+    class Config:
+        # Para que Pydantic extraiga atributos de SQLModel/ORM automáticamente
+        from_attributes = True
+        
+class BudgetCreate(BaseModel):
+    category: str
+    subcategory: Optional[str] = None
+    amount: float
+
+class BudgetRead(BudgetCreate):
+    id: UUID
+
+    class Config:
+        from_attributes = True

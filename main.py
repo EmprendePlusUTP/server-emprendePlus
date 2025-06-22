@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from db.utils import create_tables
 from contextlib import asynccontextmanager
 from db import models  # Asegúrate de que este módulo exista y contenga los modelos
-from routers import business, users, products, sales
+from routers import budgets, business, finances, users, products, sales
 from services.register_session import handle_register_session
 
 @asynccontextmanager
@@ -26,6 +26,8 @@ app.include_router(users.router, prefix="/api/users", tags=["Usuarios"])
 app.include_router(products.router, prefix="/api/products", tags=["Productos"])
 app.include_router(sales.router, prefix="/api/sales", tags=["Ventas"])
 app.include_router(business.router, prefix="/api/business", tags=["Negocios"])
+app.include_router(finances.router, prefix="/api/finances", tags=["Finanzas"])
+app.include_router(budgets.router, prefix="/api/budgets", tags=["Presupuestos"])
 
 # Ruta base
 @app.get("/")
