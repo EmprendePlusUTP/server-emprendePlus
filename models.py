@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import date, datetime, time
+
 from typing import List, Optional
 from uuid import UUID
 from pydantic import BaseModel
@@ -67,7 +68,7 @@ class SaleProductRead(BaseModel):
 
 class SaleRead(BaseModel):
     id: UUID
-    sale_date: date
+    sale_date: datetime
     total: float
     sale_products: List[SaleProductRead]
 
@@ -82,11 +83,11 @@ class SaleProductInput(BaseModel):
     
 
 class SaleCreateInput(BaseModel):
-    sale_date: date
+    sale_date: datetime
     products: List[SaleProductInput]
     
 class SaleUpdateInput(BaseModel):
-    sale_date: Optional[date]
+    sale_date: Optional[datetime]
     products: Optional[List[SaleProductInput]]
     
 class ProductUpdateInput(BaseModel):
@@ -97,7 +98,7 @@ class ProductUpdateInput(BaseModel):
     stock: Optional[int]
     
 class FinanceCreate(BaseModel):
-    date: date
+    date: datetime
     type: str
     category: str
     subcategory: str
@@ -121,3 +122,12 @@ class BudgetRead(BudgetCreate):
 
     class Config:
         from_attributes = True
+
+class MonthlySalesComparison(BaseModel):
+    month: str
+    primary: float 
+    secondary: float     
+class StarProductComparison(BaseModel):
+    name: str
+    total_value: float
+    monthly_comparison: list[MonthlySalesComparison]

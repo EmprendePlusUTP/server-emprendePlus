@@ -1,9 +1,8 @@
 from typing import Optional, List
+from sqlalchemy import Column, DateTime
 from sqlmodel import SQLModel, Field, Relationship
 from uuid import UUID, uuid4
-import uuid
-from datetime import date
-
+from datetime import  datetime
 
 # ---------------------------
 # User
@@ -21,7 +20,7 @@ class User(SQLModel, table=True):
 class Finance(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     business_id: UUID = Field(foreign_key="business.id", index=True)
-    date: date
+    date: datetime
     type: str  # "income" o "expense"
     category: str
     subcategory: str
@@ -126,10 +125,14 @@ class Product(SQLModel, table=True):
 class Sale(SQLModel, table=True):
     id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
     business_id: UUID = Field(foreign_key="business.id")
-    sale_date: date
+    
+    sale_date: datetime = Field(
+    sa_column=Column(DateTime(timezone=True), nullable=False)
+)
+
     total: float
 
-    business: Optional[Business] = Relationship(back_populates="sales")
+    business: Optional["Business"] = Relationship(back_populates="sales")
     sale_products: List["SaleProduct"] = Relationship(
         back_populates="sale",
         sa_relationship_kwargs={"cascade": "all, delete"}
