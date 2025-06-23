@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
@@ -221,3 +221,42 @@ def delete_sale_for_user(
         session.delete(sale)
         session.commit()
         return {"message": "Venta eliminada"}
+    
+
+from sqlalchemy import extract
+from collections import defaultdict
+
+@router.get("/summary/monthly-summary")
+def get_monthly_summary(user_id: str = Depends(get_current_user_id)):
+    with Session(engine) as session:
+        business = session.exec(
+            select(Business).where(Business.owner_id == user_id)
+        ).first()
+        if not business:
+            raise HTTPException(status_code=404, detail="Business not found")
+
+        # Traer todas las ventas del último año
+        one_year_ago = datetime.today().replace(year=datetime.today().year - 1)
+
+        sales = session.exec(
+            select(Sale.sale_date, Sale.total)
+            .where(Sale.business_id == business.id)
+            .where(Sale.sale_date >= one_year_ago)
+        ).all()
+
+        # Agrupar por año y mes
+        monthly_totals = defaultdict(float)
+        for sale_date, total in sales:
+            key = (sale_date.year, sale_date.month)
+            monthly_totals[key] += total
+
+        # Convertir a [{ date, value }]
+        summary = [
+            {
+                "date": datetime(year, month, 1).isoformat(),
+                "value": round(monthly_totals[(year, month)], 2),
+            }
+            for (year, month) in sorted(monthly_totals)
+        ]
+
+        return summary
