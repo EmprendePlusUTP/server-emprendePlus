@@ -28,12 +28,26 @@ class BusinessUpdate(BaseModel):
     number_format: Optional[str] = None
     
 class ProductCreate(BaseModel):
-    name: str
     sku: str
+    name: str
     sale_price: float
     type: Optional[str] = None
     cost: Optional[float] = None
     stock: Optional[int] = None
+    description: Optional[str] = None
+    discount: Optional[float] = None
+    min_stock_alert: Optional[int] = None
+    supplier: Optional[str] = None
+    status: Optional[str] = None
+    color: Optional[str] = None
+    width: Optional[float] = None
+    height: Optional[float] = None
+    depth: Optional[float] = None
+    weight: Optional[float] = None
+    tax_rate: Optional[float] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    rating: Optional[float] = None
 
 class ProductRead(BaseModel):
     sku: str

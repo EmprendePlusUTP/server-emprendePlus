@@ -288,19 +288,20 @@ def get_star_product_summary(user_id: str = Depends(get_current_user_id)):
         ).first()
 
         if not top_product_result:
-            raise HTTPException(status_code=404, detail="No sales found")
+            raise HTTPException(status_code=204, detail="No sales found")
 
         top_product_id, qty, total_value = top_product_result
 
         product = session.get(Product, top_product_id)
         if not product:
-            raise HTTPException(status_code=404, detail="Product not found")
+            raise HTTPException(status_code=204, detail="Product not found")
 
         # Traer data del endpoint comparativo
         comparison = get_top_product_comparison(user_id)
 
         return {
             "name": product.name,
+            "product_qty": qty,
             "total_value": total_value,
             "monthly_comparison": comparison
         }
