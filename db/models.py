@@ -3,6 +3,7 @@ from sqlalchemy import Column, DateTime
 from sqlmodel import SQLModel, Field, Relationship
 from uuid import UUID, uuid4
 from datetime import  datetime
+import sqlalchemy
 
 # ---------------------------
 # User
@@ -110,6 +111,7 @@ class Product(SQLModel, table=True):
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     rating: Optional[float] = None
+    image_path: Optional[str] = None  
 
     business: Optional["Business"] = Relationship(back_populates="products")
 
@@ -117,6 +119,7 @@ class Product(SQLModel, table=True):
         back_populates="product",
         sa_relationship_kwargs={"cascade": "all, delete"}
     )
+    
 
 
 # ---------------------------
