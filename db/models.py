@@ -67,7 +67,7 @@ class Business(SQLModel, table=True):
     # Invoicing config
     currency: str = "USD"
     invoice_prefix: Optional[str] = ""
-    invoice_counter: int = 1
+    invoice_counter: int = 0
     payment_terms_amount: int = 30
     payment_terms_unit: str = "days"
     bank_details: Optional[str] = None
@@ -132,7 +132,7 @@ class Sale(SQLModel, table=True):
     sale_date: datetime = Field(
     sa_column=Column(DateTime(timezone=True), nullable=False)
 )
-
+    invoice_id: str = Field(index=True, unique=True)
     total: float
 
     business: Optional["Business"] = Relationship(back_populates="sales")

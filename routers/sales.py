@@ -50,11 +50,12 @@ def create_sale_for_user(
         ).first()
         if not business:
             raise HTTPException(status_code=404, detail="Business not found")
-
+        invoice_id = f"{business.invoice_prefix}{business.invoice_counter + 1:04d}"
         sale = Sale(
             business_id=business.id,
             sale_date=data.sale_date,
-            total=sum(p.subtotal for p in data.products)
+            total=sum(p.subtotal for p in data.products),
+            invoice_id=invoice_id
         )
         session.add(sale)
         session.flush()
@@ -76,9 +77,11 @@ def create_sale_for_user(
                         raise HTTPException(status_code=400, detail=f"Insufficient stock for {product.sku}")
                     product.stock -= p.quantity
                     session.add(product)
+        business.invoice_counter += 1
+        session.add(business)
         session.commit()
         session.refresh(sale)
-        return {"message": "Venta creada", "sale_id": sale.id}
+        return {"message": "Venta creada", "sale_id": sale.id, "invoice_id": sale.invoice_id}
 
 @router.get("/{sale_id}")
 def get_sale_by_id(
@@ -121,6 +124,7 @@ def get_sale_by_id(
 
         return {
             "sale_id": str(sale.id),
+            "invoice_id": sale.invoice_id,
             "sale_date": sale.sale_date,
             "total": sale.total,
             "products": products
