@@ -82,6 +82,7 @@ class SaleProductRead(BaseModel):
 
 class SaleRead(BaseModel):
     id: UUID
+    invoice_id: str
     sale_date: datetime
     total: float
     sale_products: List[SaleProductRead]
