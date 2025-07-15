@@ -1,65 +1,80 @@
-from fastapi import APIRouter, Depends
-from fastapi.responses import StreamingResponse
-from sqlmodel import SQLModel, Session as SQLSession, create_engine
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from sqlalchemy.orm import Session as MainSession
+from sqlmodel import SQLModel, Session as TempSession
+from sqlalchemy import create_engine
 from db.models import Business, Budget, Finance, Product, Sale, SaleProduct
-from io import BytesIO
-import tempfile, shutil, os
-from typing import List
+import shutil, tempfile, os
+from typing import Type
 
 router = APIRouter()
 
-# Conexion local 
-DATABASE_URL = "sqlite:///./database.db" 
+
+DATABASE_URL = "sqlite:///./database.db"
 main_engine = create_engine(DATABASE_URL, echo=True)
 
 def get_session():
-    with Session(main_engine) as session:
+    with MainSession(bind=main_engine) as session:
         yield session
+        
+TABLES: list[Type[SQLModel]] = [Business, Budget, Finance, Product, Sale, SaleProduct]
 
-@router.get("/business/export-db")
-def export_business_db(business_id: str, session: Session = Depends(get_session)):
-    # Crear una base de datos SQLite temporal
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        db_path = os.path.join(tmpdirname, "database.db")
-        engine = create_engine(f"sqlite:///{db_path}")
-        SQLModel.metadata.create_all(engine)
+@router.post("/business/import-db")
+def import_business_from_db(
+    file: UploadFile = File(...),
+    session: MainSession = Depends(get_session)
+):
+    if not file.filename.endswith(".db"):
+        raise HTTPException(status_code=400, detail="Debe subir un archivo .db")
 
-        with SQLSession(engine) as tmp_session:
-            # Copiar Business
-            business = session.query(Business).filter(Business.id == business_id).first()
-            if business:
-                tmp_session.add(Business.from_orm(business))
+    try:
+        # Guardar archivo .db temporalmente
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, "imported.db")
+            with open(db_path, "wb") as f:
+                shutil.copyfileobj(file.file, f)
 
-            # Copiar Finance
-            finances = session.query(Finance).filter(Finance.business_id == business_id).all()
-            tmp_session.add_all([Finance.from_orm(f) for f in finances])
+            # Crear motor y sesión para base temporal
+            temp_engine = create_engine(f"sqlite:///{db_path}")
+            with TempSession(temp_engine) as temp_session:
+                # Obtener business principal
+                business: Business = temp_session.query(Business).first()
+                if not business:
+                    raise HTTPException(status_code=400, detail="No se encontró ningún negocio en el archivo.")
+                business_id = business.id
 
-            # Copiar Budget
-            budgets = session.query(Budget).filter(Budget.business_id == business_id).all()
-            tmp_session.add_all([Budget.from_orm(b) for b in budgets])
+                # Verificar si el negocio ya existe en la base principal
+                if not session.get(Business, business_id):
+                    session.add(Business.from_orm(business))
 
-            # Copiar Product
-            products = session.query(Product).filter(Product.business_id == business_id).all()
-            tmp_session.add_all([Product.from_orm(p) for p in products])
+                # Registrar IDs existentes para evitar duplicados
+                existing_ids = {
+                    model.__name__: {r.id for r in session.query(model).all()}
+                    for model in TABLES if hasattr(model, "id")
+                }
 
-            # Copiar Sale
-            sales = session.query(Sale).filter(Sale.business_id == business_id).all()
-            tmp_session.add_all([Sale.from_orm(s) for s in sales])
+                # Recorrer tablas restantes
+                for model in TABLES:
+                    if model == Business:
+                        continue
+                    temp_records = temp_session.query(model).all()
 
-            # Copiar SaleProduct
-            sale_ids = [s.id for s in sales]
-            sale_products = session.query(SaleProduct).filter(SaleProduct.sale_id.in_(sale_ids)).all()
-            tmp_session.add_all([SaleProduct.from_orm(sp) for sp in sale_products])
+                    for record in temp_records:
+                        if hasattr(record, "business_id") and record.business_id != business_id:
+                            continue  
+                        if model.__name__ in existing_ids and getattr(record, "id", None) in existing_ids[model.__name__]:
+                            continue  
 
-            tmp_session.commit()
+                        # Validar claves foráneas (sale_id en SaleProduct)
+                        if isinstance(record, SaleProduct):
+                            if not session.get(Sale, record.sale_id):
+                                continue
 
-        # Leer el archivo .db y devolverlo como streaming
-        buffer = BytesIO()
-        with open(db_path, "rb") as f:
-            shutil.copyfileobj(f, buffer)
-        buffer.seek(0)
+                        session.add(model.from_orm(record))
 
-    return StreamingResponse(buffer, media_type="application/x-sqlite3", headers={
-        "Content-Disposition": f"attachment; filename=business_{business_id}.db"
-    })
+                session.commit()
+
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al importar base de datos: {str(e)}")
+
+    return {"detail": "Importadad database existosamente"}
