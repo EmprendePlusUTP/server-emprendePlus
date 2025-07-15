@@ -1,66 +1,65 @@
-from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
+from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
+from sqlmodel import SQLModel, Session as SQLSession, create_engine
 from sqlalchemy.orm import Session
-from sqlmodel import SQLModel, Session as SQLSession
 from db.models import Business, Budget, Finance, Product, Sale, SaleProduct
-from db.connection import engine,get_session
-import csv, zipfile, io
+from io import BytesIO
+import tempfile, shutil, os
 from typing import List
 
 router = APIRouter()
 
-TABLE_MAP = {
-    "business.csv": (Business, "business_id"),
-    "budgets.csv": (Budget, "business_id"),
-    "finances.csv": (Finance, "business_id"),
-    "products.csv": (Product, "business_id"),
-    "sales.csv": (Sale, "business_id"),
-    "sale_products.csv": (SaleProduct, "sale_id")  
-}
+# Conexion local 
+DATABASE_URL = "sqlite:///./database.db" 
+main_engine = create_engine(DATABASE_URL, echo=True)
 
-def parse_csv(content: str, model) -> List[SQLModel]:
-    reader = csv.DictReader(io.StringIO(content))
-    return [model(**row) for row in reader]
+def get_session():
+    with Session(main_engine) as session:
+        yield session
 
-@router.post("/business/import")
-def import_business_data(
-    file: UploadFile = File(...),
-    session: Session = Depends(get_session)
-):
-    if not file.filename.endswith(".zip"):
-        raise HTTPException(status_code=400, detail="Debe subir un archivo .zip")
+@router.get("/business/export-db")
+def export_business_db(business_id: str, session: Session = Depends(get_session)):
+    # Crear una base de datos SQLite temporal
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        db_path = os.path.join(tmpdirname, "database.db")
+        engine = create_engine(f"sqlite:///{db_path}")
+        SQLModel.metadata.create_all(engine)
 
-    zip_bytes = file.file.read()
-    try:
-        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zip_file:
-            files_in_zip = zip_file.namelist()
-            required = list(TABLE_MAP.keys())
+        with SQLSession(engine) as tmp_session:
+            # Copiar Business
+            business = session.query(Business).filter(Business.id == business_id).first()
+            if business:
+                tmp_session.add(Business.from_orm(business))
 
-            if not any(f in files_in_zip for f in required):
-                raise HTTPException(status_code=400, detail="Faltan archivos necesarios en el ZIP")
+            # Copiar Finance
+            finances = session.query(Finance).filter(Finance.business_id == business_id).all()
+            tmp_session.add_all([Finance.from_orm(f) for f in finances])
 
-            load_order = [
-                "business.csv",
-                "budgets.csv",
-                "finances.csv",
-                "products.csv",
-                "sales.csv",
-                "sale_products.csv"
-            ]
+            # Copiar Budget
+            budgets = session.query(Budget).filter(Budget.business_id == business_id).all()
+            tmp_session.add_all([Budget.from_orm(b) for b in budgets])
 
-            for file_name in load_order:
-                if file_name not in files_in_zip:
-                    continue
+            # Copiar Product
+            products = session.query(Product).filter(Product.business_id == business_id).all()
+            tmp_session.add_all([Product.from_orm(p) for p in products])
 
-                model, key_field = TABLE_MAP[file_name]
-                csv_bytes = zip_file.read(file_name).decode("utf-8")
-                items = parse_csv(csv_bytes, model)
+            # Copiar Sale
+            sales = session.query(Sale).filter(Sale.business_id == business_id).all()
+            tmp_session.add_all([Sale.from_orm(s) for s in sales])
 
-                for item in items:
-                    session.add(item)
+            # Copiar SaleProduct
+            sale_ids = [s.id for s in sales]
+            sale_products = session.query(SaleProduct).filter(SaleProduct.sale_id.in_(sale_ids)).all()
+            tmp_session.add_all([SaleProduct.from_orm(sp) for sp in sale_products])
 
-            session.commit()
-    except Exception as e:
-        session.rollback()
-        raise HTTPException(status_code=400, detail=f"Error al importar datos: {str(e)}")
+            tmp_session.commit()
 
-    return {"detail": "Importación exitosa"}
+        # Leer el archivo .db y devolverlo como streaming
+        buffer = BytesIO()
+        with open(db_path, "rb") as f:
+            shutil.copyfileobj(f, buffer)
+        buffer.seek(0)
+
+    return StreamingResponse(buffer, media_type="application/x-sqlite3", headers={
+        "Content-Disposition": f"attachment; filename=business_{business_id}.db"
+    })
