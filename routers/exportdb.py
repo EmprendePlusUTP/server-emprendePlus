@@ -1,59 +1,65 @@
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
+from sqlmodel import SQLModel, Session as SQLSession, create_engine
 from sqlalchemy.orm import Session
 from db.models import Business, Budget, Finance, Product, Sale, SaleProduct
-from db.connection import get_session
-from io import StringIO, BytesIO
-import csv, zipfile
+from io import BytesIO
+import tempfile, shutil, os
+from typing import List
 
 router = APIRouter()
 
-def to_csv_string(data, headers):
-    output = StringIO()
-    writer = csv.writer(output)
-    writer.writerow(headers)
-    for item in data:
-        writer.writerow([getattr(item, h) for h in headers])
-    return output.getvalue()
+# Conexion local 
+DATABASE_URL = "sqlite:///./database.db"  # O tu URL real
+main_engine = create_engine(DATABASE_URL, echo=True)
 
-@router.get("/business/export")
-def export_business_data(business_id: str, session: Session = Depends(get_session)):
-    zip_buffer = BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        
-        # Exportar Business (uno solo)
-        business = session.query(Business).filter(Business.id == business_id).first()
-        if business:
-            csv_str = to_csv_string([business], [c.name for c in Business.__table__.columns])
-            zip_file.writestr("business.csv", csv_str)
+def get_session():
+    with Session(main_engine) as session:
+        yield session
 
-        # Exportar Finance
-        finances = session.query(Finance).filter(Finance.business_id == business_id).all()
-        csv_str = to_csv_string(finances, [c.name for c in Finance.__table__.columns])
-        zip_file.writestr("finances.csv", csv_str)
+@router.get("/business/export-db")
+def export_business_db(business_id: str, session: Session = Depends(get_session)):
+    # Crear una base de datos SQLite temporal
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        db_path = os.path.join(tmpdirname, "database.db")
+        engine = create_engine(f"sqlite:///{db_path}")
+        SQLModel.metadata.create_all(engine)
 
-        # Exportar Budget
-        budgets = session.query(Budget).filter(Budget.business_id == business_id).all()
-        csv_str = to_csv_string(budgets, [c.name for c in Budget.__table__.columns])
-        zip_file.writestr("budgets.csv", csv_str)
+        with SQLSession(engine) as tmp_session:
+            # Copiar Business
+            business = session.query(Business).filter(Business.id == business_id).first()
+            if business:
+                tmp_session.add(Business.from_orm(business))
 
-        # Exportar Product
-        products = session.query(Product).filter(Product.business_id == business_id).all()
-        csv_str = to_csv_string(products, [c.name for c in Product.__table__.columns])
-        zip_file.writestr("products.csv", csv_str)
+            # Copiar Finance
+            finances = session.query(Finance).filter(Finance.business_id == business_id).all()
+            tmp_session.add_all([Finance.from_orm(f) for f in finances])
 
-        # Exportar Sale
-        sales = session.query(Sale).filter(Sale.business_id == business_id).all()
-        csv_str = to_csv_string(sales, [c.name for c in Sale.__table__.columns])
-        zip_file.writestr("sales.csv", csv_str)
+            # Copiar Budget
+            budgets = session.query(Budget).filter(Budget.business_id == business_id).all()
+            tmp_session.add_all([Budget.from_orm(b) for b in budgets])
 
-        # Exportar SaleProduct (solo los que pertenecen a esas ventas)
-        sale_ids = [s.id for s in sales]
-        sale_products = session.query(SaleProduct).filter(SaleProduct.sale_id.in_(sale_ids)).all()
-        csv_str = to_csv_string(sale_products, [c.name for c in SaleProduct.__table__.columns])
-        zip_file.writestr("sale_products.csv", csv_str)
+            # Copiar Product
+            products = session.query(Product).filter(Product.business_id == business_id).all()
+            tmp_session.add_all([Product.from_orm(p) for p in products])
 
-    zip_buffer.seek(0)
-    return StreamingResponse(zip_buffer, media_type="application/zip", headers={
-        "Content-Disposition": f"attachment; filename=business_{business_id}.zip"
+            # Copiar Sale
+            sales = session.query(Sale).filter(Sale.business_id == business_id).all()
+            tmp_session.add_all([Sale.from_orm(s) for s in sales])
+
+            # Copiar SaleProduct
+            sale_ids = [s.id for s in sales]
+            sale_products = session.query(SaleProduct).filter(SaleProduct.sale_id.in_(sale_ids)).all()
+            tmp_session.add_all([SaleProduct.from_orm(sp) for sp in sale_products])
+
+            tmp_session.commit()
+
+        # Leer el archivo .db y devolverlo como streaming
+        buffer = BytesIO()
+        with open(db_path, "rb") as f:
+            shutil.copyfileobj(f, buffer)
+        buffer.seek(0)
+
+    return StreamingResponse(buffer, media_type="application/x-sqlite3", headers={
+        "Content-Disposition": f"attachment; filename=business_{business_id}.db"
     })
