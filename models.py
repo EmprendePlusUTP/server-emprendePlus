@@ -111,6 +111,7 @@ class ProductUpdateInput(BaseModel):
     cost: Optional[float]
     sale_price: Optional[float]
     stock: Optional[int]
+    min_stock_alert: Optional[int]
     
 class FinanceCreate(BaseModel):
     date: datetime
