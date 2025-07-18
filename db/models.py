@@ -11,7 +11,7 @@ import sqlalchemy
 class User(SQLModel, table=True):
     id: str = Field(primary_key=True)  # Auth0 ID
     name: str
-
+    email: Optional[str] = None 
     # One user → one business
     business: Optional["Business"] = Relationship(back_populates="owner")
     

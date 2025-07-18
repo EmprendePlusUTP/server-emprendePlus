@@ -10,13 +10,13 @@ from routers.auth import get_current_user
 router = APIRouter()
 
 @router.get("/")
-def get_products(user_id: str = Depends(get_current_user), request: Request = None):
+def get_products(user = Depends(get_current_user), request: Request = None):
     import os
     with Session(engine) as session:
         query = (
             select(Product)
             .join(Product.business)
-            .where(Business.owner_id == user_id)
+            .where(Business.owner_id == user["id"])
         )
         products = session.exec(query).all()
         result = []
@@ -37,11 +37,11 @@ def get_products(user_id: str = Depends(get_current_user), request: Request = No
 @router.post("/")
 async def create_product_for_user(
     data: ProductCreate = Body(...),
-    user_id: str = Depends(get_current_user)
+    user = Depends(get_current_user)
 ):
     with Session(engine) as session:
         business = session.exec(
-            select(Business).where(Business.owner_id == user_id)
+            select(Business).where(Business.owner_id == user["id"])
         ).first()
 
         if not business:
@@ -79,14 +79,14 @@ async def create_product_for_user(
         return product
     
 @router.get("/{sku}")
-def get_product_by_sku(sku: str, user_id: str = Depends(get_current_user), request: Request = None):
+def get_product_by_sku(sku: str, user = Depends(get_current_user), request: Request = None):
     import os
     with Session(engine) as session:
         product = session.exec(
             select(Product)
             .join(Product.business)
             .where(Product.sku == sku)
-            .where(Business.owner_id == user_id)
+            .where(Business.owner_id == user["id"])
         ).first()
 
         if not product:
@@ -149,7 +149,7 @@ def delete_product(sku: str):
 async def upload_product_image(
     sku: str = Form(...),
     file: UploadFile = File(...),
-    user_id: str = Depends(get_current_user)
+    user = Depends(get_current_user)
 ):
     import os
     from fastapi.responses import JSONResponse
@@ -160,7 +160,7 @@ async def upload_product_image(
             select(Product)
             .join(Product.business)
             .where(Product.sku == sku)
-            .where(Business.owner_id == user_id)
+            .where(Business.owner_id == user["id"])
         ).first()
         if not product:
             raise HTTPException(status_code=404, detail="Product not found or not owned by user")

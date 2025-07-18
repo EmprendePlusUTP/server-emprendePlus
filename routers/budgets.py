@@ -12,13 +12,13 @@ from routers.auth import get_current_user
 router = APIRouter()
 
 @router.get("/", response_model=List[BudgetRead])
-def read_budgets(user_id: str = Depends(get_current_user)):
+def read_budgets(user = Depends(get_current_user)):
     """
     Lista el presupuesto definido para el negocio del usuario.
     """
     with Session(engine) as session:
         biz = session.exec(
-            select(Business).where(Business.owner_id == user_id)
+            select(Business).where(Business.owner_id == user["id"])
         ).first()
         if not biz:
             raise HTTPException(status_code=404, detail="Business not found")
@@ -29,14 +29,14 @@ def read_budgets(user_id: str = Depends(get_current_user)):
 @router.post("/", response_model=BudgetRead, status_code=status.HTTP_201_CREATED)
 def create_or_update_budget(
     data: BudgetCreate,
-    user_id: str = Depends(get_current_user),
+    user = Depends(get_current_user),
 ):
     """
     Crea o actualiza una entrada de presupuesto (por categoría/subcategoría).
     """
     with Session(engine) as session:
         biz = session.exec(
-            select(Business).where(Business.owner_id == user_id)
+            select(Business).where(Business.owner_id == user["id"])
         ).first()
         if not biz:
             raise HTTPException(status_code=404, detail="Business not found")
