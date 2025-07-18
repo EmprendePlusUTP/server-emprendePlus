@@ -7,13 +7,13 @@ from db.models import Business, Sale, SaleProduct, Product
 from pydantic import BaseModel
 from db.connection import engine
 from models import SaleCreateInput, SaleProductInput, SaleRead, SaleUpdateInput
-from routers.auth import get_current_user_id
+from routers.auth import get_current_user
 from sqlalchemy.orm import selectinload
 
 router = APIRouter()
     
 @router.get("/", response_model=List[SaleRead])
-def get_sales_for_user(user_id: str = Depends(get_current_user_id)):
+def get_sales_for_user(user_id: str = Depends(get_current_user)):
     with Session(engine) as session:
         business = session.exec(
             select(Business).where(Business.owner_id == user_id)
@@ -42,7 +42,7 @@ def get_sales_for_user(user_id: str = Depends(get_current_user_id)):
 @router.post("/")
 def create_sale_for_user(
     data: SaleCreateInput,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user)
 ):
     with Session(engine) as session:
         business = session.exec(
@@ -86,7 +86,7 @@ def create_sale_for_user(
 @router.get("/{sale_id}")
 def get_sale_by_id(
     sale_id: UUID,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user)
 ):
     with Session(engine) as session:
         # Validar que la venta sea del negocio del usuario
@@ -134,7 +134,7 @@ def get_sale_by_id(
 def update_sale_for_user(
     sale_id: UUID,
     data: SaleUpdateInput,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user)
 ):
     with Session(engine) as session:
         # 1. Obtener el negocio del usuario
@@ -207,7 +207,7 @@ def update_sale_for_user(
 @router.delete("/{sale_id}")
 def delete_sale_for_user(
     sale_id: UUID,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user)
 ):
     with Session(engine) as session:
         business = session.exec(
@@ -231,7 +231,7 @@ from sqlalchemy import extract
 from collections import defaultdict
 
 @router.get("/summary/monthly-summary")
-def get_monthly_summary(user_id: str = Depends(get_current_user_id)):
+def get_monthly_summary(user_id: str = Depends(get_current_user)):
     with Session(engine) as session:
         business = session.exec(
             select(Business).where(Business.owner_id == user_id)

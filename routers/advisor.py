@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from db.connection import engine
 from db.models import Business, Sale, SaleProduct, Product, Finance, Budget
-from routers.auth import get_current_user_id
+from routers.auth import get_current_user
 from datetime import datetime
 from collections import defaultdict, Counter
 import openai
@@ -29,7 +29,7 @@ class AdvisorResponse(BaseModel):
 @router.post("/", response_model=AdvisorResponse)
 def advisor(
     req: AdvisorRequest,
-    user_id: str = Depends(get_current_user_id),
+    user_id: str = Depends(get_current_user),
 ):
     try:
         with Session(engine) as session:

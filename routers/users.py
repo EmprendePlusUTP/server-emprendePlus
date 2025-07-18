@@ -34,6 +34,7 @@ class UserOut(BaseModel):
 def create_user_query(
     user_id: str = Query(...),
     user_name: str = Query(...),
+    user_email: str = Query(...),
     business_name: str = Query(None)
 ):
     import uuid

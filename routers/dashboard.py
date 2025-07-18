@@ -7,12 +7,12 @@ from typing import Optional
 from datetime import datetime, timedelta, timezone
 from db.connection import engine
 from db.models import Business, Sale, SaleProduct, Product
-from routers.auth import get_current_user_id
+from routers.auth import get_current_user
 
 router = APIRouter()
 
 @router.get("/summary")
-def get_dashboard_summary(user_id: str = Depends(get_current_user_id)):
+def get_dashboard_summary(user_id: str = Depends(get_current_user)):
     """
     Devuelve resumen para el dashboard: ingresos, órdenes, conversión, producto estrella.
     """
@@ -114,7 +114,7 @@ def get_dashboard_summary(user_id: str = Depends(get_current_user_id)):
 }
 
 @router.get("/wordcloud")
-def get_wordcloud_data(user_id: str = Depends(get_current_user_id)):
+def get_wordcloud_data(user_id: str = Depends(get_current_user)):
     """
     Devuelve una lista de productos más vendidos en formato { text, value }
     útil para la nube de palabras.
@@ -149,7 +149,7 @@ def get_wordcloud_data(user_id: str = Depends(get_current_user_id)):
         return wordcloud_data
 
 @router.get("/sales-activity")
-def get_sales_activity(user_id: str = Depends(get_current_user_id)):
+def get_sales_activity(user_id: str = Depends(get_current_user)):
     with Session(engine) as session:
         business = session.exec(
             select(Business).where(Business.owner_id == user_id)
@@ -194,7 +194,7 @@ def get_sales_activity(user_id: str = Depends(get_current_user_id)):
         return {"data": data}
     
 @router.get("/star-product-comparison")
-def get_top_product_comparison(user_id: str = Depends(get_current_user_id)):
+def get_top_product_comparison(user_id: str = Depends(get_current_user)):
     with Session(engine) as session:
         # Buscar negocio
         business = session.exec(
@@ -262,7 +262,7 @@ def get_top_product_comparison(user_id: str = Depends(get_current_user_id)):
         return result
     
 @router.get("/star-product", response_model=dict)
-def get_star_product_summary(user_id: str = Depends(get_current_user_id)):
+def get_star_product_summary(user_id: str = Depends(get_current_user)):
     """
     Devuelve el nombre del producto estrella, su valor total anual y la comparación mensual.
     """
