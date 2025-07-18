@@ -161,34 +161,23 @@ def get_sales_activity(user = Depends(get_current_user)):
             select(Sale).where(Sale.business_id == business.id)
         ).all()
 
-        # Agrupar ventas por fecha (día)
-        sales_by_day: defaultdict[str, list[Sale]] = defaultdict(list)
+        heatmap = [[0 for _ in range(24)] for _ in range(7)]  # 7 días x 24 horas
 
         for sale in sales:
             sale_dt = sale.sale_date
-            if sale_dt.tzinfo is None or sale_dt.tzinfo.utcoffset(sale_dt) != timedelta(hours=-5):
+
+            # Asegurar que tenga zona horaria (UTC-5 para Panamá)
+            if sale_dt.tzinfo is None:
+                sale_dt = sale_dt.replace(tzinfo=timezone(timedelta(hours=-5)))
+            else:
                 sale_dt = sale_dt.astimezone(timezone(timedelta(hours=-5)))
 
-            sale_day_str = sale_dt.date().isoformat()
-            sales_by_day[sale_day_str].append(sale_dt)
+            day = (sale_dt.weekday() + 1) % 7  # Lunes=0...Domingo=6 → convertir a Domingo=0
+            hour = sale_dt.hour
 
-        total_days = len(sales_by_day)
-        heatmap = [[0 for _ in range(24)] for _ in range(7)]
+            heatmap[day][hour] += 1
 
-        # Acumular conteos por hora/día
-        for sale_day_sales in sales_by_day.values():
-            for dt in sale_day_sales:
-                day = (dt.weekday() + 1) % 7
-                hour = dt.hour
-                heatmap[day][hour] += 1
-
-        # Promediar dividiendo por número de días únicos
-        if total_days > 0:
-            for day in range(7):
-                for hour in range(24):
-                    heatmap[day][hour] = round(heatmap[day][hour] / total_days, 2)
-
-        # Formato para ECharts
+        # ECharts formato: [hora, día, valor]
         data = [[hour, day, heatmap[day][hour]] for day in range(7) for hour in range(24)]
 
         return {"data": data}

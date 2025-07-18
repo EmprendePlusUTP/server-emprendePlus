@@ -7,3 +7,4 @@ pydantic
 jose
 requests
 python-jose[cryptography]
+faker
