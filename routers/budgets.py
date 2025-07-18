@@ -7,12 +7,12 @@ from typing import List
 from db.connection import engine
 from db.models import Business, Budget
 from models import BudgetCreate, BudgetRead
-from routers.auth import get_current_user_id
+from routers.auth import get_current_user
 
 router = APIRouter()
 
 @router.get("/", response_model=List[BudgetRead])
-def read_budgets(user_id: str = Depends(get_current_user_id)):
+def read_budgets(user_id: str = Depends(get_current_user)):
     """
     Lista el presupuesto definido para el negocio del usuario.
     """
@@ -29,7 +29,7 @@ def read_budgets(user_id: str = Depends(get_current_user_id)):
 @router.post("/", response_model=BudgetRead, status_code=status.HTTP_201_CREATED)
 def create_or_update_budget(
     data: BudgetCreate,
-    user_id: str = Depends(get_current_user_id),
+    user_id: str = Depends(get_current_user),
 ):
     """
     Crea o actualiza una entrada de presupuesto (por categoría/subcategoría).

@@ -6,6 +6,7 @@ from sqlmodel import Session, select
 from db.models import Business, User
 from db.connection import engine
 from routers.auth import get_token_auth_header
+from utils.email.email_utils import send_welcome_email
 
 def handle_register_session(payload: dict = Depends(get_token_auth_header)):
     namespace = "https://emprendeplus.com/"
@@ -42,6 +43,9 @@ def handle_register_session(payload: dict = Depends(get_token_auth_header)):
         session.add(user)
         session.commit()
         session.refresh(user)
+        
+        if email:
+            send_welcome_email(to_email=email, name=name)
 
         # ✅ Crear un negocio aunque sea vacío
         business = Business(

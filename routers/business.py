@@ -4,7 +4,7 @@ from db.models import User, Business
 from db.connection import engine
 from sqlmodel import Session, select
 from models import BusinessUpdate
-from routers.auth import get_current_user_id, get_token_auth_header
+from routers.auth import get_current_user, get_token_auth_header
 from pydantic import BaseModel
 from sqlalchemy.orm import selectinload
 from uuid import UUID, uuid4
@@ -12,7 +12,7 @@ from uuid import UUID, uuid4
 router = APIRouter()
 
 @router.get("/business-settings", response_model=Business)
-def get_business_settings(user_id: str = Depends(get_current_user_id)):
+def get_business_settings(user_id: str = Depends(get_current_user)):
     """
     Obtiene la configuración del negocio asociado al usuario autenticado.
     """
@@ -53,7 +53,7 @@ def create_business(user_id: str = Query(...), name: str = Query(...), descripti
 
 @router.patch("/update-business/")
 def update_business_by_user(
-   user_id: str = Depends(get_current_user_id),
+   user_id: str = Depends(get_current_user),
     data: BusinessUpdate = Body(...)
 ):
     """

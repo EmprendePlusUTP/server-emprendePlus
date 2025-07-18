@@ -4,13 +4,13 @@ from sqlmodel import Session, select
 from db.connection import engine
 from db.models import  Product, Business, User
 from models import ProductCreate, ProductCreateFromUser, ProductRead, ProductUpdateInput
-from routers.auth import get_current_user_id
+from routers.auth import get_current_user
 
 
 router = APIRouter()
 
 @router.get("/")
-def get_products(user_id: str = Depends(get_current_user_id), request: Request = None):
+def get_products(user_id: str = Depends(get_current_user), request: Request = None):
     import os
     with Session(engine) as session:
         query = (
@@ -37,7 +37,7 @@ def get_products(user_id: str = Depends(get_current_user_id), request: Request =
 @router.post("/")
 async def create_product_for_user(
     data: ProductCreate = Body(...),
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user)
 ):
     with Session(engine) as session:
         business = session.exec(
@@ -79,7 +79,7 @@ async def create_product_for_user(
         return product
     
 @router.get("/{sku}")
-def get_product_by_sku(sku: str, user_id: str = Depends(get_current_user_id), request: Request = None):
+def get_product_by_sku(sku: str, user_id: str = Depends(get_current_user), request: Request = None):
     import os
     with Session(engine) as session:
         product = session.exec(
@@ -149,7 +149,7 @@ def delete_product(sku: str):
 async def upload_product_image(
     sku: str = Form(...),
     file: UploadFile = File(...),
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user)
 ):
     import os
     from fastapi.responses import JSONResponse

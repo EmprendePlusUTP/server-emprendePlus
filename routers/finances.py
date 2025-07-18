@@ -9,14 +9,14 @@ from sqlmodel import Session, func, select
 from db.connection import engine
 from db.models import Business, Finance, Sale
 from models import FinanceCreate, FinanceRead
-from routers.auth import get_current_user_id
+from routers.auth import get_current_user
 
 
 router = APIRouter()
 
 
 @router.get("/", response_model=List[FinanceRead])
-def read_finances(user_id: str = Depends(get_current_user_id)):
+def read_finances(user_id: str = Depends(get_current_user)):
     """
     Devuelve:
     - Un registro virtual tipo 'income' por cada fecha en la que hubo ventas,
@@ -71,7 +71,7 @@ def read_finances(user_id: str = Depends(get_current_user_id)):
 @router.post("/", response_model=FinanceRead, status_code=201)
 def create_finance(
     data: FinanceCreate = Body(...),
-    user_id: str = Depends(get_current_user_id),
+    user_id: str = Depends(get_current_user),
 ):
     """
     Crea una transacción manual (income o expense).
@@ -100,7 +100,7 @@ def create_finance(
 @router.delete("/{finance_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_finance(
     finance_id: int,
-    user_id: str = Depends(get_current_user_id),
+    user_id: str = Depends(get_current_user),
 ):
     """
     Elimina una transacción Finance por su ID, solo si pertenece al negocio del usuario.
