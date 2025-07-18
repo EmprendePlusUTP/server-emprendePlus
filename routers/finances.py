@@ -16,7 +16,7 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[FinanceRead])
-def read_finances(user_id: str = Depends(get_current_user)):
+def read_finances(user = Depends(get_current_user)):
     """
     Devuelve:
     - Un registro virtual tipo 'income' por cada fecha en la que hubo ventas,
@@ -25,7 +25,7 @@ def read_finances(user_id: str = Depends(get_current_user)):
     """
     with Session(engine) as session:
         business = session.exec(
-            select(Business).where(Business.owner_id == user_id)
+            select(Business).where(Business.owner_id == user["id"])
         ).first()
         if not business:
             raise HTTPException(404, "Business not found")
@@ -71,14 +71,14 @@ def read_finances(user_id: str = Depends(get_current_user)):
 @router.post("/", response_model=FinanceRead, status_code=201)
 def create_finance(
     data: FinanceCreate = Body(...),
-    user_id: str = Depends(get_current_user),
+    user = Depends(get_current_user),
 ):
     """
     Crea una transacción manual (income o expense).
     """
     with Session(engine) as session:
         business = session.exec(
-            select(Business).where(Business.owner_id == user_id)
+            select(Business).where(Business.owner_id == user["id"])
         ).first()
         if not business:
             raise HTTPException(404, "Business not found")
@@ -100,7 +100,7 @@ def create_finance(
 @router.delete("/{finance_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_finance(
     finance_id: int,
-    user_id: str = Depends(get_current_user),
+    user = Depends(get_current_user),
 ):
     """
     Elimina una transacción Finance por su ID, solo si pertenece al negocio del usuario.
@@ -108,7 +108,7 @@ def delete_finance(
     with Session(engine) as session:
         # Validar negocio del usuario
         business = session.exec(
-            select(Business).where(Business.owner_id == user_id)
+            select(Business).where(Business.owner_id == user["id"])
         ).first()
         if not business:
             raise HTTPException(status_code=404, detail="Business not found")

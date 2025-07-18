@@ -20,6 +20,7 @@ class BusinessOut(BaseModel):
 class UserOut(BaseModel):
     id: str
     name: str
+    email:Optional[str]
     business: Optional[BusinessOut] 
 
     @property
@@ -45,7 +46,7 @@ def create_user_query(
         existing = session.exec(select(User).where(User.id == user_id)).first()
         if existing:
             return existing
-        user = User(id=user_id, name=user_name, business_name=business_name)
+        user = User(id=user_id, name=user_name, email=user_email, business_name=business_name)
         session.add(user)
         session.commit()
         session.refresh(user)

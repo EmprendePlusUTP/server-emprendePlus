@@ -9,6 +9,8 @@ from jose import jwt
 import os
 from dotenv import load_dotenv
 
+from db.models import User
+
 load_dotenv()
 
 AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
@@ -77,10 +79,10 @@ def get_token_auth_header(auth: HTTPAuthorizationCredentials = Depends(token_aut
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unable to parse authentication token.")
     
-def get_current_user(payload: dict = Depends(get_token_auth_header)) -> dict:
+def get_current_user(payload: dict = Depends(get_token_auth_header)) -> User:
     user_id = payload.get("sub")
-    user_email = payload.get("email")
-    user_name = payload.get("name")
+    user_email = payload.get("https://emprendeplus.com/email")
+    user_name = payload.get("https://emprendeplus.com/name")
 
     if not user_id or not user_email:
         raise HTTPException(status_code=401, detail="Faltan datos en el token")

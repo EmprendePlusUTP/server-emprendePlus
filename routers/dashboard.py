@@ -12,14 +12,14 @@ from routers.auth import get_current_user
 router = APIRouter()
 
 @router.get("/summary")
-def get_dashboard_summary(user_id: str = Depends(get_current_user)):
+def get_dashboard_summary(user = Depends(get_current_user)):
     """
     Devuelve resumen para el dashboard: ingresos, órdenes, conversión, producto estrella.
     """
     with Session(engine) as session:
         # 1. Obtener negocio asociado al usuario
         business = session.exec(
-            select(Business).where(Business.owner_id == user_id)
+            select(Business).where(Business.owner_id == user["id"])
         ).first()
         if not business:
             raise HTTPException(status_code=404, detail="Business not found")
@@ -114,14 +114,14 @@ def get_dashboard_summary(user_id: str = Depends(get_current_user)):
 }
 
 @router.get("/wordcloud")
-def get_wordcloud_data(user_id: str = Depends(get_current_user)):
+def get_wordcloud_data(user = Depends(get_current_user)):
     """
     Devuelve una lista de productos más vendidos en formato { text, value }
     útil para la nube de palabras.
     """
     with Session(engine) as session:
         business = session.exec(
-            select(Business).where(Business.owner_id == user_id)
+            select(Business).where(Business.owner_id == user["id"])
         ).first()
         if not business:
             raise HTTPException(status_code=404, detail="Business not found")
@@ -149,10 +149,10 @@ def get_wordcloud_data(user_id: str = Depends(get_current_user)):
         return wordcloud_data
 
 @router.get("/sales-activity")
-def get_sales_activity(user_id: str = Depends(get_current_user)):
+def get_sales_activity(user = Depends(get_current_user)):
     with Session(engine) as session:
         business = session.exec(
-            select(Business).where(Business.owner_id == user_id)
+            select(Business).where(Business.owner_id == user["id"])
         ).first()
         if not business:
             raise HTTPException(status_code=404, detail="Business not found")
@@ -194,11 +194,11 @@ def get_sales_activity(user_id: str = Depends(get_current_user)):
         return {"data": data}
     
 @router.get("/star-product-comparison")
-def get_top_product_comparison(user_id: str = Depends(get_current_user)):
+def get_top_product_comparison(user = Depends(get_current_user)):
     with Session(engine) as session:
         # Buscar negocio
         business = session.exec(
-            select(Business).where(Business.owner_id == user_id)
+            select(Business).where(Business.owner_id == user["id"])
         ).first()
         if not business:
             raise HTTPException(status_code=404, detail="Business not found")
@@ -262,13 +262,13 @@ def get_top_product_comparison(user_id: str = Depends(get_current_user)):
         return result
     
 @router.get("/star-product", response_model=dict)
-def get_star_product_summary(user_id: str = Depends(get_current_user)):
+def get_star_product_summary(user = Depends(get_current_user)):
     """
     Devuelve el nombre del producto estrella, su valor total anual y la comparación mensual.
     """
     with Session(engine) as session:
         business = session.exec(
-            select(Business).where(Business.owner_id == user_id)
+            select(Business).where(Business.owner_id == user["id"])
         ).first()
         if not business:
             raise HTTPException(status_code=404, detail="Business not found")
@@ -297,7 +297,7 @@ def get_star_product_summary(user_id: str = Depends(get_current_user)):
             raise HTTPException(status_code=204, detail="Product not found")
 
         # Traer data del endpoint comparativo
-        comparison = get_top_product_comparison(user_id)
+        comparison = get_top_product_comparison(user=user)
 
         return {
             "name": product.name,

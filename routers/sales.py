@@ -13,10 +13,10 @@ from sqlalchemy.orm import selectinload
 router = APIRouter()
     
 @router.get("/", response_model=List[SaleRead])
-def get_sales_for_user(user_id: str = Depends(get_current_user)):
+def get_sales_for_user(user = Depends(get_current_user)):
     with Session(engine) as session:
         business = session.exec(
-            select(Business).where(Business.owner_id == user_id)
+            select(Business).where(Business.owner_id == user["id"])
         ).first()
         if not business:
             raise HTTPException(status_code=404, detail="Business not found")
@@ -42,11 +42,11 @@ def get_sales_for_user(user_id: str = Depends(get_current_user)):
 @router.post("/")
 def create_sale_for_user(
     data: SaleCreateInput,
-    user_id: str = Depends(get_current_user)
+    user = Depends(get_current_user)
 ):
     with Session(engine) as session:
         business = session.exec(
-            select(Business).where(Business.owner_id == user_id)
+            select(Business).where(Business.owner_id == user["id"])
         ).first()
         if not business:
             raise HTTPException(status_code=404, detail="Business not found")
@@ -86,12 +86,12 @@ def create_sale_for_user(
 @router.get("/{sale_id}")
 def get_sale_by_id(
     sale_id: UUID,
-    user_id: str = Depends(get_current_user)
+    user = Depends(get_current_user)
 ):
     with Session(engine) as session:
         # Validar que la venta sea del negocio del usuario
         business = session.exec(
-            select(Business).where(Business.owner_id == user_id)
+            select(Business).where(Business.owner_id == user["id"])
         ).first()
 
         if not business:
@@ -134,12 +134,12 @@ def get_sale_by_id(
 def update_sale_for_user(
     sale_id: UUID,
     data: SaleUpdateInput,
-    user_id: str = Depends(get_current_user)
+    user = Depends(get_current_user)
 ):
     with Session(engine) as session:
         # 1. Obtener el negocio del usuario
         business = session.exec(
-            select(Business).where(Business.owner_id == user_id)
+            select(Business).where(Business.owner_id == user["id"])
         ).first()
         if not business:
             raise HTTPException(status_code=404, detail="Business not found")
@@ -207,11 +207,11 @@ def update_sale_for_user(
 @router.delete("/{sale_id}")
 def delete_sale_for_user(
     sale_id: UUID,
-    user_id: str = Depends(get_current_user)
+    user = Depends(get_current_user)
 ):
     with Session(engine) as session:
         business = session.exec(
-            select(Business).where(Business.owner_id == user_id)
+            select(Business).where(Business.owner_id == user["id"])
         ).first()
         if not business:
             raise HTTPException(status_code=404, detail="Business not found")
@@ -231,10 +231,10 @@ from sqlalchemy import extract
 from collections import defaultdict
 
 @router.get("/summary/monthly-summary")
-def get_monthly_summary(user_id: str = Depends(get_current_user)):
+def get_monthly_summary(user = Depends(get_current_user)):
     with Session(engine) as session:
         business = session.exec(
-            select(Business).where(Business.owner_id == user_id)
+            select(Business).where(Business.owner_id == user["id"])
         ).first()
         if not business:
             raise HTTPException(status_code=404, detail="Business not found")
