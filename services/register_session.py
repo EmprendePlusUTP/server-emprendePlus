@@ -1,9 +1,7 @@
-# services/register_session.py
-
 import uuid
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from sqlmodel import Session, select
-from db.models import Business, User
+from db.models import Business, User, BlacklistUser
 from db.connection import engine
 from routers.auth import get_token_auth_header
 from utils.email.email_utils import send_welcome_email
@@ -18,10 +16,14 @@ def handle_register_session(payload: dict = Depends(get_token_auth_header)):
         return {"error": "No se pudo obtener el user_id desde el token"}
 
     with Session(engine) as session:
-        existing_user = session.exec(select(User).where(User.id == user_id)).first()
+        blacklist_entry = session.exec(
+            select(BlacklistUser).where(BlacklistUser.user_id == user_id)
+        ).first()
+        if blacklist_entry:
+            raise HTTPException(status_code=403, detail="Usuario en blacklist")
 
+        existing_user = session.exec(select(User).where(User.id == user_id)).first()
         if existing_user:
-            # ✅ Verificar si ya tiene al menos un negocio, y si no, crear uno por defecto
             if not existing_user.business:
                 business = Business(
                     id=uuid.uuid4(),
@@ -38,7 +40,6 @@ def handle_register_session(payload: dict = Depends(get_token_auth_header)):
                 "user_id": user_id,
             }
 
-        # ✅ Crear nuevo usuario
         user = User(id=user_id, name=name or "", business_name=None)
         session.add(user)
         session.commit()
@@ -47,7 +48,6 @@ def handle_register_session(payload: dict = Depends(get_token_auth_header)):
         if email:
             send_welcome_email(to_email=email, name=name)
 
-        # ✅ Crear un negocio aunque sea vacío
         business = Business(
             id=uuid.uuid4(),
             name="Mi negocio",

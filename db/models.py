@@ -4,7 +4,6 @@ from sqlmodel import SQLModel, Field, Relationship
 from uuid import UUID, uuid4
 from datetime import  datetime
 import sqlalchemy
-
 # ---------------------------
 # User
 # ---------------------------
@@ -161,3 +160,8 @@ class SaleProduct(SQLModel, table=True):
     sale_price: Optional[float] = None
 
 
+class BlacklistUser(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: str = Field(index=True, nullable=False, unique=True)
+    reason: Optional[str] = Field(default="")
+    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
