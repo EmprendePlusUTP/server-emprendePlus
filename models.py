@@ -4,6 +4,9 @@ from typing import List, Optional
 from uuid import UUID
 from pydantic import BaseModel
 
+from pydantic import field_validator
+from utils.sanitization.validator import validate_safe_text
+
 class BusinessUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
@@ -25,6 +28,16 @@ class BusinessUpdate(BaseModel):
     language: Optional[str] = None
     date_format: Optional[str] = None
     number_format: Optional[str] = None
+    @field_validator(
+        "name", "description", "tagline", "legal_name", "tax_id", "fiscal_address",
+        "phone", "email", "currency", "invoice_prefix", "payment_terms_unit",
+        "bank_details", "tax_rates", "timezone", "language", "date_format", "number_format",
+        mode="before")
+    
+    def sanitize_strings(cls, v, info):
+        if v is None:
+            return v
+        return validate_safe_text(v, info.field_name)
     
 class ProductCreate(BaseModel):
     sku: str
@@ -48,6 +61,14 @@ class ProductCreate(BaseModel):
     updated_at: Optional[str] = None
     rating: Optional[float] = None
 
+    @field_validator(
+        "sku", "name", "type", "description", "supplier", "status", "color",
+        mode="before")
+    
+    def sanitize_fields(cls, v, info):
+        if v is None:
+            return v
+        return  validate_safe_text(v, info.field_name)
 class ProductRead(BaseModel):
     sku: str
     type: str
@@ -58,16 +79,7 @@ class ProductRead(BaseModel):
 
     class Config:
         from_attributes = True
-        
-class ProductCreateFromUser(BaseModel):
-    user_id: str
-    type: str
-    cost: float
-    name: str
-    sale_price: float
-    stock: int
-    
-    
+            
 class SaleProductRead(BaseModel):
     product_id: str
     quantity: int
@@ -112,6 +124,13 @@ class ProductUpdateInput(BaseModel):
     stock: Optional[int]
     min_stock_alert: Optional[int]
     
+    @field_validator("name", "type", mode="before")
+    def sanitize_str_fields(cls, v, info):
+        if v is None:
+            return v
+        return  validate_safe_text(v, info.field_name)
+    
+    
 class FinanceCreate(BaseModel):
     date: datetime
     type: str
@@ -119,6 +138,12 @@ class FinanceCreate(BaseModel):
     subcategory: str
     amount: float
     description: Optional[str] = None
+    
+    @field_validator("type", "category", "subcategory", "description", mode="before")
+    def sanitize_str_fields(cls, v, info):
+        if v is None:
+            return v
+        return  validate_safe_text(v, info.field_name)
 
 class FinanceRead(FinanceCreate):
     id: int
@@ -131,6 +156,13 @@ class BudgetCreate(BaseModel):
     category: str
     subcategory: Optional[str] = None
     amount: float
+    
+    @field_validator("category", "subcategory", mode="before")
+    
+    def sanitize_str_fields(cls, v, info):
+        if v is None:
+            return v
+        return  validate_safe_text(v, info.field_name)
 
 class BudgetRead(BudgetCreate):
     id: UUID
