@@ -3,7 +3,7 @@ from fastapi import APIRouter, Body, Depends, Query, HTTPException, UploadFile, 
 from sqlmodel import Session, select
 from db.connection import engine
 from db.models import  Product, Business, User
-from models import ProductCreate, ProductCreateFromUser, ProductRead, ProductUpdateInput
+from models import ProductCreate, ProductRead, ProductUpdateInput
 from routers.auth import get_current_user
 
 
