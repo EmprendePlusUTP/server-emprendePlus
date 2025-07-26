@@ -4,7 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from db.utils import create_tables
 from contextlib import asynccontextmanager
 from db import models  # Asegúrate de que este módulo exista y contenga los modelos
-from routers import budgets, business, dashboard, finances, users, products, sales, advisor, generate_dummy_data
+
+from routers import budgets, business, dashboard, finances, users, products, sales, advisor, generate_dummy_data, download_data
 from routers.generate_dummy_data import router as dummy_router
 
 
@@ -38,6 +39,8 @@ app.include_router(business.router, prefix="/api/business", tags=["Negocios"])
 app.include_router(finances.router, prefix="/api/finances", tags=["Finanzas"])
 app.include_router(budgets.router, prefix="/api/budgets", tags=["Presupuestos"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Tablero"])
+
+app.include_router(download_data.router, prefix="/api", tags=["Descarga Data"])
 app.include_router(advisor.router, prefix="/api/advisor", tags=["Modaldobot"])
 app.include_router(generate_dummy_data.router, prefix="/api/generate-dummy-data", tags=["Generar Data"])
 app.include_router(blacklist.router, tags=["Blacklist"])
